@@ -1,0 +1,6 @@
+{
+  "name": "Skizoo Archive",
+  "description": "A private Instagram-style archive for Skizoo, protected by a birthday pin.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
