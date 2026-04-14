@@ -94,7 +94,7 @@ export default function App() {
               <div className="space-y-2">
                 <h1 className="text-xl font-medium text-gray-800">Arsip Rahasia</h1>
                 <p className="text-gray-500 text-sm leading-relaxed">
-                  Hanya untuk hana. Masih ingat kan tanggal lahirku?
+                  Hanya untuk hana. Masih ingat tanggal lahirku?
                 </p>
               </div>
 
