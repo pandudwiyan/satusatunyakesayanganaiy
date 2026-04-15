@@ -236,7 +236,7 @@ export default function App() {
                     <span className="text-gray-500 text-sm sm:text-base">posts</span>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-1">
-                    <span className="font-semibold">1</span>
+                    <span className="font-semibold">0</span>
                     <span className="text-gray-500 text-sm sm:text-base">followers</span>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-1">
