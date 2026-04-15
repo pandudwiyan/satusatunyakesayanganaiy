@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, Instagram, Grid, Heart, MessageCircle, Bookmark, User, Search, PlusSquare, Compass, MoreHorizontal, Music, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
+import { Lock, Instagram, Grid, Heart, MessageCircle, Bookmark, User, Search, PlusSquare, Compass, MoreHorizontal, Music, ChevronLeft, ChevronRight, Volume2, VolumeX, X } from 'lucide-react';
 import { fetchMediaFiles, Post, PostMedia } from './services/githubService';
 
 const CORRECT_PIN = '20041996';
@@ -104,7 +104,7 @@ export default function App() {
               </motion.div>
 
               <div className="space-y-2">
-                <h1 className="text-xl font-medium text-gray-800">Buka Saya</h1>
+                <h1 className="text-xl font-medium text-gray-800">Locked</h1>
                 <p className="text-gray-500 text-sm leading-relaxed">
                   masih ingat tanggal lahirku kan?
                 </p>
@@ -248,7 +248,7 @@ export default function App() {
                 <div className="space-y-1">
                   <p className="font-semibold text-sm sm:text-base">Pandu ❤ Hana</p>
                   <p className="text-sm sm:text-base text-gray-600">Diary Depresi Skizoo</p>
-                  <p className="text-sm sm:text-base text-gray-600">i know kamu dah gak peduli, tp aku ingin tetap bikin ini biar kamu tau aku sayang banget sama kamu meski kamu udah enggak. aku bakal berhenti update sampai kamu menemukan yang baru</p>
+                  <p className="text-sm sm:text-base text-gray-600">I know kamu dah gak peduli, tp aku ingin tetap bikin ini biar kamu tau aku sayang banget sama kamu meski kamu udah enggak. aku bakal berhenti update sampai kamu menemukan yang baru</p>
                 </div>
               </div>
             </div>
@@ -392,16 +392,24 @@ export default function App() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setSelectedPost(null)}
-            className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4 sm:p-10"
+            className="fixed inset-0 z-[100] bg-black sm:bg-black/80 flex items-center justify-center p-0 sm:p-10"
           >
+            {/* Close button for mobile */}
+            <button 
+              onClick={() => setSelectedPost(null)}
+              className="absolute top-4 right-4 z-[110] text-white sm:hidden"
+            >
+              <X className="w-8 h-8" />
+            </button>
+
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white max-w-5xl w-full max-h-[90vh] rounded-lg overflow-hidden flex flex-col sm:flex-row"
+              className="bg-white w-full h-full sm:h-auto sm:max-w-5xl sm:max-h-[90vh] sm:rounded-lg overflow-hidden flex flex-col sm:flex-row"
             >
-              <div className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group/media">
+              <div className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group/media min-h-[50vh] sm:min-h-0">
                 {selectedPost.media.length > 0 && (
                   <>
                     <AnimatePresence mode="wait">
@@ -410,12 +418,19 @@ export default function App() {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="w-full h-full flex items-center justify-center"
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.2}
+                        onDragEnd={(_, info) => {
+                          if (info.offset.x < -50) nextMedia();
+                          if (info.offset.x > 50) prevMedia();
+                        }}
+                        className="w-full h-full flex items-center justify-center touch-none"
                       >
                         {selectedPost.media[currentMediaIndex].type === 'video' ? (
                           <video
                             src={selectedPost.media[currentMediaIndex].download_url}
-                            className="max-w-full max-h-full"
+                            className="w-full h-full object-contain"
                             controls
                             autoPlay
                           />
@@ -433,7 +448,7 @@ export default function App() {
                           <img
                             src={selectedPost.media[currentMediaIndex].download_url}
                             alt={selectedPost.media[currentMediaIndex].name}
-                            className="max-w-full max-h-full object-contain"
+                            className="w-full h-full object-contain"
                             referrerPolicy="no-referrer"
                           />
                         )}
@@ -444,13 +459,13 @@ export default function App() {
                       <>
                         <button
                           onClick={prevMedia}
-                          className="absolute left-4 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors opacity-0 group-hover/media:opacity-100"
+                          className="absolute left-4 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors hidden sm:block opacity-0 group-hover/media:opacity-100"
                         >
                           <ChevronLeft className="w-6 h-6" />
                         </button>
                         <button
                           onClick={nextMedia}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors opacity-0 group-hover/media:opacity-100"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors hidden sm:block opacity-0 group-hover/media:opacity-100"
                         >
                           <ChevronRight className="w-6 h-6" />
                         </button>
@@ -485,8 +500,8 @@ export default function App() {
                   </div>
                 )}
               </div>
-              <div className="w-full sm:w-[400px] flex flex-col bg-white">
-                <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <div className="w-full sm:w-[400px] flex flex-col bg-white overflow-y-auto sm:overflow-hidden">
+                <div className="p-4 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white z-10">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
                       <img src={PROFILE_PICTURE} alt="Avatar" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
@@ -509,7 +524,7 @@ export default function App() {
                     </div>
                   </div>
                 </div>
-                <div className="p-4 border-t border-gray-100 space-y-3">
+                <div className="p-4 border-t border-gray-100 space-y-3 mt-auto bg-white sticky bottom-0">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <Heart className="w-6 h-6 cursor-pointer hover:text-gray-600" />
