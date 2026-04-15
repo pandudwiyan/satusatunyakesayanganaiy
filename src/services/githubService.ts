@@ -15,55 +15,109 @@ export interface GitHubFile {
   type: string;
 }
 
-export async function fetchMediaFiles(): Promise<GitHubFile[]> {
+export interface PostMedia {
+  name: string;
+  download_url: string;
+  type: 'image' | 'video' | 'audio';
+}
+
+export interface Post {
+  id: string;
+  folderName: string;
+  media: PostMedia[];
+  bgMusic?: string;
+  caption: string;
+  date: number;
+}
+
+export async function fetchMediaFiles(): Promise<Post[]> {
   const repo = 'pandudwiyan/satusatunyakesayanganaiy';
   const path = 'media';
   const contentsUrl = `https://api.github.com/repos/${repo}/contents/${path}`;
-  const commitsUrl = `https://api.github.com/repos/${repo}/commits?path=${path}`;
 
   try {
-    // 1. Fetch file contents
     const contentsResponse = await fetch(contentsUrl);
     if (!contentsResponse.ok) {
       throw new Error(`Failed to fetch media contents: ${contentsResponse.statusText}`);
     }
-    const files: GitHubFile[] = await contentsResponse.json();
-    const mediaFiles = files.filter(file => file.type === 'file');
+    const items: any[] = await contentsResponse.json();
+    const folders = items.filter(item => item.type === 'dir');
 
-    // 2. Fetch commits to get the last modified date for each file
-    // Note: This is an approximation since we can't easily get creation date for all files in one call.
-    // However, we can fetch the commits for the directory to see the order of changes.
-    const commitsResponse = await fetch(commitsUrl);
-    if (!commitsResponse.ok) {
-      // Fallback to alphabetical reverse if commits fetch fails
-      return mediaFiles.reverse();
-    }
-    const commits = await commitsResponse.json();
+    const posts = await Promise.all(folders.map(async (folder) => {
+      // Fetch contents of each folder
+      const folderContentsUrl = folder.url;
+      const folderContentsResponse = await fetch(folderContentsUrl);
+      const folderItems: any[] = await folderContentsResponse.json();
 
-    // Create a map of filename to its latest commit date
-    // We'll fetch individual file commits for better accuracy if needed, 
-    // but for a small repo, we can often infer from the directory commits.
-    // Let's try to get the actual last commit date for each file for precise sorting.
-    
-    const filesWithDates = await Promise.all(mediaFiles.map(async (file) => {
-      const fileCommitsUrl = `https://api.github.com/repos/${repo}/commits?path=${file.path}&per_page=1`;
+      let bgMusic: string | undefined;
+      let caption = folder.name; // Default to folder name
+      const media: PostMedia[] = [];
+
+      // Get folder date from commits
+      const folderCommitsUrl = `https://api.github.com/repos/${repo}/commits?path=${folder.path}&per_page=1`;
+      let date = 0;
       try {
-        const res = await fetch(fileCommitsUrl);
-        if (res.ok) {
-          const fileCommits = await res.json();
-          if (fileCommits.length > 0) {
-            return { ...file, date: new Date(fileCommits[0].commit.committer.date).getTime() };
+        const dateRes = await fetch(folderCommitsUrl);
+        if (dateRes.ok) {
+          const commits = await dateRes.json();
+          if (commits.length > 0) {
+            date = new Date(commits[0].commit.committer.date).getTime();
           }
         }
       } catch (e) {
-        console.error(`Error fetching date for ${file.name}:`, e);
+        console.error(`Error fetching date for folder ${folder.name}:`, e);
       }
-      return { ...file, date: 0 };
+
+      for (const item of folderItems) {
+        if (item.type !== 'file') continue;
+
+        if (item.name === 'bg.mp3') {
+          bgMusic = item.download_url;
+        } else if (item.name === 'caption.txt') {
+          try {
+            const captionRes = await fetch(item.download_url);
+            if (captionRes.ok) {
+              caption = await captionRes.text();
+            }
+          } catch (e) {
+            console.error(`Error fetching caption for ${folder.name}:`, e);
+          }
+        } else {
+          const ext = item.name.split('.').pop()?.toLowerCase();
+          let type: 'image' | 'video' | 'audio' = 'image';
+          if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) type = 'video';
+          else if (['mp3', 'wav', 'm4a', 'aac'].includes(ext || '')) type = 'audio';
+          
+          if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'ogg', 'mov', 'mp3', 'wav', 'm4a', 'aac'].includes(ext || '')) {
+            media.push({
+              name: item.name,
+              download_url: item.download_url,
+              type
+            });
+          }
+        }
+      }
+
+      // Sort media by filename (e.g., 1.jpg, 2.jpg)
+      media.sort((a, b) => {
+        const aNum = parseInt(a.name.split('.')[0]);
+        const bNum = parseInt(b.name.split('.')[0]);
+        if (!isNaN(aNum) && !isNaN(bNum)) return aNum - bNum;
+        return a.name.localeCompare(b.name);
+      });
+
+      return {
+        id: folder.sha,
+        folderName: folder.name,
+        media,
+        bgMusic,
+        caption,
+        date
+      };
     }));
 
-    // Sort by date descending (newest first)
-    return filesWithDates
-      .sort((a, b) => b.date - a.date);
+    // Sort posts by date descending (newest first)
+    return posts.sort((a, b) => b.date - a.date);
 
   } catch (error) {
     console.error('Error fetching media from GitHub:', error);

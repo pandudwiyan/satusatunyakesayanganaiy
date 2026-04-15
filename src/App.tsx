@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Lock, Instagram, Grid, Heart, MessageCircle, Bookmark, User, Search, PlusSquare, Compass, MoreHorizontal, Music } from 'lucide-react';
-import { fetchMediaFiles, GitHubFile } from './services/githubService';
+import { Lock, Instagram, Grid, Heart, MessageCircle, Bookmark, User, Search, PlusSquare, Compass, MoreHorizontal, Music, ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
+import { fetchMediaFiles, Post, PostMedia } from './services/githubService';
 
 const CORRECT_PIN = '20041996';
 
@@ -14,15 +14,28 @@ export default function App() {
   const [isLocked, setIsLocked] = useState(true);
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-  const [posts, setPosts] = useState<GitHubFile[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     if (!isLocked) {
       loadPosts();
     }
   }, [isLocked]);
+
+  useEffect(() => {
+    if (selectedPost && audioRef.current) {
+      audioRef.current.volume = 0.5;
+      if (!isMuted) {
+        audioRef.current.play().catch(e => console.log("Autoplay blocked:", e));
+      }
+    }
+  }, [selectedPost, isMuted]);
 
   const loadPosts = async () => {
     setLoading(true);
@@ -46,25 +59,24 @@ export default function App() {
     }
   };
 
-  const [selectedPost, setSelectedPost] = useState<GitHubFile | null>(null);
-
-  const PROFILE_PICTURE = "https://scontent-cgk2-2.cdninstagram.com/v/t51.82787-15/669942182_17995935326937622_1275504927212784213_n.heic?stp=dst-jpg_e35_tt6&_nc_cat=105&ig_cache_key=Mzg3NDk2MjMxNzczMzYzMTA0Ng%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjgxMHgxMDgwLnNkci5DMyJ9&_nc_ohc=c4eIjF5iMkYQ7kNvwE6l4jZ&_nc_oc=AdrM-6D7P_MDGBCfyt9q6kXplcH-JPB5V6MUaWrmsg0j609KnLklLnMF0MBCqJesins&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-cgk2-2.cdninstagram.com&_nc_gid=pk9B0YDH0iIr2NB-S9Xt2w&_nc_ss=7a32e&oh=00_Af2CUXb78zAIuL_hk_PR57lEET0jVetvS0shFOjkLsDszg&oe=69E3F58F";
-
-  const getMediaType = (filename: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    if (['mp4', 'webm', 'ogg', 'mov'].includes(ext || '')) return 'video';
-    if (['mp3', 'wav', 'm4a', 'aac'].includes(ext || '')) return 'audio';
-    return 'image';
-  };
-
-  const cleanCaption = (filename: string) => {
-    return filename.replace(/\.[^/.]+$/, "");
-  };
-
   const handleLogout = () => {
     setIsLocked(true);
     setPin('');
     setShowLogoutMenu(false);
+  };
+
+  const PROFILE_PICTURE = "https://scontent-cgk2-2.cdninstagram.com/v/t51.82787-15/669942182_17995935326937622_1275504927212784213_n.heic?stp=dst-jpg_e35_tt6&_nc_cat=105&ig_cache_key=Mzg3NDk2MjMxNzczMzYzMTA0Ng%3D%3D.3-ccb7-5&ccb=7-5&_nc_sid=58cdad&efg=eyJ2ZW5jb2RlX3RhZyI6InhwaWRzLjgxMHgxMDgwLnNkci5DMyJ9&_nc_ohc=c4eIjF5iMkYQ7kNvwE6l4jZ&_nc_oc=AdrM-6D7P_MDGBCfyt9q6kXplcH-JPB5V6MUaWrmsg0j609KnLklLnMF0MBCqJesins&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent-cgk2-2.cdninstagram.com&_nc_gid=pk9B0YDH0iIr2NB-S9Xt2w&_nc_ss=7a32e&oh=00_Af2CUXb78zAIuL_hk_PR57lEET0jVetvS0shFOjkLsDszg&oe=69E3F58F";
+
+  const nextMedia = () => {
+    if (selectedPost) {
+      setCurrentMediaIndex((prev) => (prev + 1) % selectedPost.media.length);
+    }
+  };
+
+  const prevMedia = () => {
+    if (selectedPost) {
+      setCurrentMediaIndex((prev) => (prev - 1 + selectedPost.media.length) % selectedPost.media.length);
+    }
   };
 
   return (
@@ -92,9 +104,9 @@ export default function App() {
               </motion.div>
 
               <div className="space-y-2">
-                <h1 className="text-xl font-medium text-gray-800">Arsip Rahasia</h1>
+                <h1 className="text-xl font-medium text-gray-800">Buka Saya</h1>
                 <p className="text-gray-500 text-sm leading-relaxed">
-                  Hanya untuk hana. Masih ingat tanggal lahirku?
+                  masih ingat tanggal lahirku kan?
                 </p>
               </div>
 
@@ -224,7 +236,7 @@ export default function App() {
                     <span className="text-gray-500 text-sm sm:text-base">posts</span>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-1">
-                    <span className="font-semibold">0</span>
+                    <span className="font-semibold">1</span>
                     <span className="text-gray-500 text-sm sm:text-base">followers</span>
                   </div>
                   <div className="flex flex-col sm:flex-row items-center gap-1">
@@ -235,8 +247,8 @@ export default function App() {
 
                 <div className="space-y-1">
                   <p className="font-semibold text-sm sm:text-base">Pandu ❤ Hana</p>
-                  <p className="text-sm sm:text-base text-gray-600">Diary depresi skizoo</p>
-                  <p className="text-sm sm:text-base text-gray-600">Apa-apa aku curhatkan disini</p>
+                  <p className="text-sm sm:text-base text-gray-600">Diary Depresi Skizoo</p>
+                  <p className="text-sm sm:text-base text-gray-600">i know kamu dah gak peduli, tp aku ingin tetap bikin ini biar kamu tau aku sayang banget sama kamu meski kamu udah enggak. aku bakal berhenti update sampai kamu menemukan yang baru</p>
                 </div>
               </div>
             </div>
@@ -272,31 +284,43 @@ export default function App() {
               ) : posts.length > 0 ? (
                 posts.map((post) => (
                   <motion.div
-                    key={post.sha}
+                    key={post.id}
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     whileHover={{ scale: 1.02 }}
-                    onClick={() => setSelectedPost(post)}
+                    onClick={() => {
+                      setSelectedPost(post);
+                      setCurrentMediaIndex(0);
+                    }}
                     className="relative aspect-square group cursor-pointer overflow-hidden sm:rounded-lg bg-gray-50"
                   >
-                    {getMediaType(post.name) === 'video' ? (
-                      <video
-                        src={post.download_url}
-                        className="w-full h-full object-cover"
-                        muted
-                        playsInline
-                      />
-                    ) : getMediaType(post.name) === 'audio' ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                        <Music className="w-12 h-12 text-gray-300" />
-                      </div>
-                    ) : (
-                      <img
-                        src={post.download_url}
-                        alt={post.name}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
+                    {post.media.length > 0 && (
+                      <>
+                        {post.media[0].type === 'video' ? (
+                          <video
+                            src={post.media[0].download_url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                          />
+                        ) : post.media[0].type === 'audio' ? (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                            <Music className="w-12 h-12 text-gray-300" />
+                          </div>
+                        ) : (
+                          <img
+                            src={post.media[0].download_url}
+                            alt={post.media[0].name}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                        {post.media.length > 1 && (
+                          <div className="absolute top-2 right-2 z-10">
+                            <PlusSquare className="w-5 h-5 text-white drop-shadow-md" />
+                          </div>
+                        )}
+                      </>
                     )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-6 text-white font-bold">
                       <div className="flex items-center gap-2">
@@ -377,31 +401,88 @@ export default function App() {
               onClick={(e) => e.stopPropagation()}
               className="bg-white max-w-5xl w-full max-h-[90vh] rounded-lg overflow-hidden flex flex-col sm:flex-row"
             >
-              <div className="flex-1 bg-black flex items-center justify-center overflow-hidden">
-                {getMediaType(selectedPost.name) === 'video' ? (
-                  <video
-                    src={selectedPost.download_url}
-                    className="max-w-full max-h-full"
-                    controls
-                    autoPlay
-                  />
-                ) : getMediaType(selectedPost.name) === 'audio' ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 p-10">
-                    <Music className="w-24 h-24 text-gray-700 mb-6" />
+              <div className="flex-1 bg-black flex items-center justify-center overflow-hidden relative group/media">
+                {selectedPost.media.length > 0 && (
+                  <>
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={selectedPost.media[currentMediaIndex].download_url}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        className="w-full h-full flex items-center justify-center"
+                      >
+                        {selectedPost.media[currentMediaIndex].type === 'video' ? (
+                          <video
+                            src={selectedPost.media[currentMediaIndex].download_url}
+                            className="max-w-full max-h-full"
+                            controls
+                            autoPlay
+                          />
+                        ) : selectedPost.media[currentMediaIndex].type === 'audio' ? (
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-gray-900 p-10">
+                            <Music className="w-24 h-24 text-gray-700 mb-6" />
+                            <audio
+                              src={selectedPost.media[currentMediaIndex].download_url}
+                              className="w-full"
+                              controls
+                              autoPlay
+                            />
+                          </div>
+                        ) : (
+                          <img
+                            src={selectedPost.media[currentMediaIndex].download_url}
+                            alt={selectedPost.media[currentMediaIndex].name}
+                            className="max-w-full max-h-full object-contain"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                      </motion.div>
+                    </AnimatePresence>
+
+                    {selectedPost.media.length > 1 && (
+                      <>
+                        <button
+                          onClick={prevMedia}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors opacity-0 group-hover/media:opacity-100"
+                        >
+                          <ChevronLeft className="w-6 h-6" />
+                        </button>
+                        <button
+                          onClick={nextMedia}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-1.5 bg-white/20 hover:bg-white/40 rounded-full text-white transition-colors opacity-0 group-hover/media:opacity-100"
+                        >
+                          <ChevronRight className="w-6 h-6" />
+                        </button>
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {selectedPost.media.map((_, i) => (
+                            <div
+                              key={i}
+                              className={`w-1.5 h-1.5 rounded-full transition-colors ${i === currentMediaIndex ? 'bg-white' : 'bg-white/40'}`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {selectedPost.bgMusic && (
+                  <div className="absolute top-4 left-4 z-20">
+                    <button
+                      onClick={() => setIsMuted(!isMuted)}
+                      className="p-2 bg-black/40 hover:bg-black/60 rounded-full text-white transition-colors flex items-center gap-2"
+                    >
+                      {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Music On</span>
+                    </button>
                     <audio
-                      src={selectedPost.download_url}
-                      className="w-full"
-                      controls
-                      autoPlay
+                      ref={audioRef}
+                      src={selectedPost.bgMusic}
+                      loop
+                      muted={isMuted}
                     />
                   </div>
-                ) : (
-                  <img
-                    src={selectedPost.download_url}
-                    alt={selectedPost.name}
-                    className="max-w-full max-h-full object-contain"
-                    referrerPolicy="no-referrer"
-                  />
                 )}
               </div>
               <div className="w-full sm:w-[400px] flex flex-col bg-white">
@@ -421,8 +502,10 @@ export default function App() {
                     </div>
                     <div className="text-sm">
                       <span className="font-semibold mr-2">skizoo</span>
-                      <span className="text-gray-800">{cleanCaption(selectedPost.name)}</span>
-                      <div className="text-gray-400 text-xs mt-2 uppercase tracking-tight">1 DAY AGO</div>
+                      <span className="text-gray-800 whitespace-pre-line">{selectedPost.caption}</span>
+                      <div className="text-gray-400 text-xs mt-2 uppercase tracking-tight">
+                        {new Date(selectedPost.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </div>
                     </div>
                   </div>
                 </div>
